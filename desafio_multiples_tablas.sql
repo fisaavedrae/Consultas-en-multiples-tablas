@@ -90,7 +90,10 @@ values ('¿Qué tipo de aceite recomendarían para un motor a gasolina?', '2023-
 
 -- Requerimientos
 -- Punto 2
-select u.nombre, u.email, po.titulo, po.contenido from usuarios u, posts po where u.id = po.usuario_id
+select u.nombre, u.email, po.titulo, po.contenido 
+from usuarios u 
+join posts po 
+on u.id = po.usuario_id
 
 -- Punto 3
 select po.id post_id, po.titulo, po.contenido from usuarios u, posts po where u.id = po.usuario_id and u.rol = 'administrador'
@@ -104,7 +107,7 @@ group by u.id, u.email
 order by u.id
 
 -- Punto 5
-select u.email from usuarios u,
+select u.email, cant_post from usuarios u,
 	(
 		select count(usuario_id) cant_post, usuario_id 
 		from posts  
@@ -115,16 +118,18 @@ group by u.email,cp.cant_post
 order by cp.cant_post desc limit 1
 
 -- Punto 6
-select * from usuarios u,
+select U.email, PO.titulo, PO.fecha_creacion  from usuarios u, posts PO,
 	(
 		select max(fecha_creacion) fecha_ultimo_post, usuario_id 
 		from posts
 		group by usuario_id
 	) as FUP
 where FUP.usuario_id = u.id
+and PO.fecha_creacion = FUP.fecha_ultimo_post
+and PO.usuario_id = FUP.usuario_id
 
 -- Punto 7
-select PO.titulo, PO.contenido from posts PO, 
+select PO.titulo, PO.contenido, cant_comentarios from posts PO, 
 	(
 		select count(post_id) cant_comentarios, post_id from comentarios
 		group by post_id
@@ -132,10 +137,10 @@ select PO.titulo, PO.contenido from posts PO,
 order by cant_comentarios desc limit 1
 
 -- Punto 8
-select PO.titulo titulo_post, PO.contenido, CO.contenido comentario, US.email from posts PO
-left join comentarios CO
-on PO.id = CO.post_id
-inner join usuarios US on PO.usuario_id = US.id
+select PO.titulo titulo_post, PO.contenido, CO.contenido comentario, US.email 
+from posts PO,comentarios CO, usuarios US
+where PO.id = CO.post_id
+and  CO.usuario_id = US.id
 
 -- Punto 9
 select U.email, CO.contenido ultimo_comentario from comentarios CO, usuarios U ,
@@ -149,8 +154,14 @@ and CO.fecha_creacion =  FUP.fecha_ultimo_comentario
 and U.id = FUP.usuario_id
 
 -- Punto 10
-select email 
-from usuarios 
-where id not in
-	(select usuario_id from comentarios)
+select u.email from usuarios U,
+	(
+		select U.id usuario_id, CO.id 
+		from usuarios U 
+		left join comentarios CO
+		on U.id = CO.usuario_id
+	) as UC	
+where UC.usuario_id = U.id
+group by UC.id,  UC.usuario_id, U.email
+having count(UC.id) = 0
 
